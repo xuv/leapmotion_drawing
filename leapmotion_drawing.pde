@@ -8,11 +8,11 @@ PVector old_position, old_velocity, center, target;
 color bg = 125; // mid grey
 
 void setup() {
-  size(displayWidth, displayHeight);
-  //size(800, 500);
+  //size(displayWidth, displayHeight);
+  size(800, 500);
   //size(300, 300);
   background(bg);
-  // ...
+
   init = true;
   
   old = new ArrayList<PVector>();
@@ -29,15 +29,7 @@ void setup() {
 }
 
 void draw() {
-  //background(255);
-  /*
-  fill(255, 10);
-  rect(0, 0, width, height);
-  */
-  // ...
   int fps = leap.getFrameRate();
-  // println( fps );
-
 
   // ========= HANDS =========
 
@@ -57,9 +49,9 @@ void draw() {
 
       //int     finger_id         = finger.getId();
       PVector finger_position   = finger.getPosition();
-      PVector finger_stabilized = finger.getStabilizedPosition();
-      PVector finger_velocity   = finger.getRawVelocity();
-      PVector finger_direction  = finger.getDirection();
+      //PVector finger_stabilized = finger.getStabilizedPosition();
+      //PVector finger_velocity   = finger.getRawVelocity();
+      //PVector finger_direction  = finger.getDirection();
       //float   finger_time       = finger.getTimeVisible();
       
 
@@ -74,6 +66,7 @@ void draw() {
        
        if (init) {
           old_position = finger_position;
+          old.clear(); // Empties the ArrayList
           for(int i=0; i < 3; i++){
             old.add(old_position);          }
           init = false;
@@ -101,7 +94,7 @@ void draw() {
         old_position = finger_position;
         old.remove(0);
         old.add(old_position);   
-        old_velocity = finger_velocity; 
+         
         break;
       case 2:
         // System.out.println("middle");
@@ -141,4 +134,3 @@ void keyPressed() {
     background(bg);
   }
 }
-
