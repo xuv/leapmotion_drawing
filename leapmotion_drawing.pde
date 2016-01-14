@@ -1,21 +1,91 @@
+import processing.pdf.*;
 import de.voidplus.leapmotion.*;
 
 LeapMotion leap;
+PGraphics pdf;
+ArrayList<PVector> history;
+PVector initHistory = new PVector(0,0,0);
 
-ArrayList<PVector> old;
+PVector[] old;
 boolean init;
 PVector old_position, old_velocity, center, target;
 color bg = 125; // mid grey
 
+// Resets the storage of previous positions to a "current" value
+void resetOld(PVector[] old,  PVector current ){
+  old[0] = current;
+  old[1] = current;
+  old[2] = current;
+}
+
+// Moves the storage of previous positions to a new step
+void stepOld(PVector[] old, PVector current){
+  old[0] = old[1];
+  old[1] = old[2];
+  old[2] = current;
+}
+
+String str_(int s){
+  if (s < 10) {
+    return "0" + str(s);
+  } else {
+    return str(s);
+  }
+}
+
+void exportPDF(){
+  String filename =  str_(year()) + str_(month()) + str_(day()) + "-" + str_(hour()) + str_(minute()) + str_(second()) + ".pdf" ;
+  pdf = createGraphics( displayWidth, displayHeight, PDF, filename);
+  PVector[] pdfOld = new PVector[3];
+  if ( history.size() > 3 ){
+    
+    pdf.beginDraw();
+    pdf.background(128);
+    pdf.noFill();
+    
+    for (int i=0; i< history.size(); i++){
+      PVector current = history.get(i);
+      
+      if ( current.x == initHistory.x && current.y == initHistory.y && current.z == initHistory.z){
+        // Similar as the init reset that happens during drawing
+        if (i+1 < history.size()){
+          resetOld(pdfOld, history.get(i+1));
+        }
+      } else {
+      
+        if ( current.z > 45 ) {
+          pdf.stroke(0);
+        } else {
+          pdf.stroke(255);
+        }
+        pdf.strokeWeight(abs(current.z - pdfOld[2].z));
+        pdf.curve (
+          pdfOld[0].x, pdfOld[0].y,
+          pdfOld[1].x, pdfOld[1].y,
+          pdfOld[2].x, pdfOld[2].y,
+          current.x, current.y
+        );
+        stepOld(pdfOld, current);
+      
+      }
+    }
+    pdf.dispose();
+    pdf.endDraw();
+  } else {
+    println("Not enough points in history to save a PDF");
+  }
+}
+
 void setup() {
-  //size(displayWidth, displayHeight);
-  size(800, 500);
-  //size(300, 300);
+
+  size(displayWidth, displayHeight);
+  
   background(bg);
 
   init = true;
   
-  old = new ArrayList<PVector>();
+  old = new PVector[3];
+  history = new ArrayList<PVector>();
   
   old_position = new PVector(0, 0, 0);
   old_velocity = new PVector(0, 0, 0);
@@ -26,6 +96,7 @@ void setup() {
   target = new PVector();
   noFill();
   leap = new LeapMotion(this);
+  
 }
 
 void draw() {
@@ -45,30 +116,18 @@ void draw() {
       // hand.getOutstrechtedFingers();
       // hand.getOutstrechtedFingersByAngle();
 
-      // ----- BASICS -----
-
-      //int     finger_id         = finger.getId();
       PVector finger_position   = finger.getPosition();
-      //PVector finger_stabilized = finger.getStabilizedPosition();
-      //PVector finger_velocity   = finger.getRawVelocity();
-      //PVector finger_direction  = finger.getDirection();
-      //float   finger_time       = finger.getTimeVisible();
-      
-
-      // ----- SPECIFIC FINGER -----
 
       switch(finger.getType()) {
       case 0:
         // System.out.println("thumb");
         break;
       case 1:
-        // System.out.println("index");
-       
+        // System.out.println("index"); 
        if (init) {
+          history.add(initHistory);
           old_position = finger_position;
-          old.clear(); // Empties the ArrayList
-          for(int i=0; i < 3; i++){
-            old.add(old_position);          }
+          resetOld( old,  old_position ); // Empties the ArrayList
           init = false;
         }
         
@@ -82,9 +141,9 @@ void draw() {
         
         
         curve (
-          old.get(0).x, old.get(0).y,
-          old.get(1).x, old.get(1).y,
-          old.get(2).x, old.get(2).y,
+          old[0].x, old[0].y,
+          old[1].x, old[1].y,
+          old[2].x, old[2].y,
           finger_position.x, finger_position.y
         );
          
@@ -92,8 +151,8 @@ void draw() {
         
         // Store actual finger position for next round.
         old_position = finger_position;
-        old.remove(0);
-        old.add(old_position);   
+        history.add(finger_position);
+        stepOld(old, old_position);   
          
         break;
       case 2:
@@ -131,6 +190,9 @@ void leapOnExit() {
 void keyPressed() {
   if (key == 'c') {
     // If it's not a letter key, clear the screen
+    exportPDF();
+    history.clear();
+    init= true;
     background(bg);
   }
 }
